@@ -1,0 +1,47 @@
+# Vigilante EXTERNO del R630 (21-oct-2026). Corre en los servidores de GitHub, no en el R630:
+# si el R630 se apaga, se queda sin internet o se cae el túnel de Cloudflare, esto falla y
+# GitHub le manda un correo al dueño del repositorio («Run failed»). Los vigilantes de adentro
+# (health-watchdog, Uptime Kuma, avisos por WhatsApp) se caen junto con el servidor.
+name: Vigía del R630
+on:
+  schedule:
+    - cron: "*/30 * * * *"      # cada 30 min (GitHub puede atrasarlo unos minutos)
+  workflow_dispatch: {}         # para probarlo a mano
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Revisar los servicios
+        run: |
+          set -u
+          # nombre|dirección: un servicio por túnel y los que mueven dinero.
+          SERVICIOS="
+          CrediGestión|https://prestamista.connect-c2ts.com/api/health
+          ChatBe (Pizza Richie)|https://pizzarichie-api.connect-c2ts.com/api/salud
+          Actas de Entrega|https://actas-api.connect-c2ts.com/api/salud
+          Despachos|https://proyectosdespachos-api.connect-c2ts.com/api/salud
+          Taller (AutoPartes)|https://taller.connect-c2ts.com/api/health
+          Agua en Ruta|https://agua.connect-c2ts.com/api/salud
+          Finanzas|https://finanzas.connect-c2ts.com/api/health
+          El Doctor|https://eldoctor.connect-c2ts.com/api/health
+          Mi Hogar|https://mihogar.connect-c2ts.com/api/health
+          Videos de Sierra|https://media.connect-c2ts.com/salud
+          "
+          CAIDOS=0
+          while IFS='|' read -r NOMBRE URL; do
+            NOMBRE=$(echo "$NOMBRE" | xargs); [ -z "$NOMBRE" ] && continue
+            # 3 intentos con 20 s entre cada uno: un parpadeo no es una caída.
+            OK=0
+            for i in 1 2 3; do
+              C=$(curl -s -o /dev/null -m 20 -w '%{http_code}' "$URL" || echo 000)
+              if [ "$C" = "200" ]; then OK=1; break; fi
+              sleep 20
+            done
+            if [ "$OK" = 1 ]; then echo "✅ $NOMBRE"; else echo "❌ $NOMBRE no responde ($C) — $URL"; echo "::error::$NOMBRE no responde ($C)"; CAIDOS=$((CAIDOS+1)); fi
+          done <<< "$SERVICIOS"
+          if [ "$CAIDOS" -gt 0 ]; then
+            echo "## ❌ $CAIDOS servicio(s) del R630 no responden" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "## ✅ Todo responde" >> "$GITHUB_STEP_SUMMARY"
