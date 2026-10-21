@@ -6,7 +6,12 @@ name: Vigía del R630
 on:
   schedule:
     - cron: "*/30 * * * *"      # cada 30 min (GitHub puede atrasarlo unos minutos)
-  workflow_dispatch: {}         # para probarlo a mano
+  workflow_dispatch:            # para probarlo a mano
+    inputs:
+      probar_alarma:
+        description: "Fingir una caída para comprobar que llega el correo"
+        type: boolean
+        default: false
 jobs:
   revisar:
     runs-on: ubuntu-latest
@@ -28,6 +33,8 @@ jobs:
           Mi Hogar|https://mihogar.connect-c2ts.com/api/health
           Videos de Sierra|https://media.connect-c2ts.com/salud
           "
+          if [ "${{ inputs.probar_alarma }}" = "true" ]; then SERVICIOS="$SERVICIOS
+          PRUEBA DE ALARMA (no es real)|https://no-existe.connect-c2ts.com/"; fi
           CAIDOS=0
           while IFS='|' read -r NOMBRE URL; do
             NOMBRE=$(echo "$NOMBRE" | xargs); [ -z "$NOMBRE" ] && continue
