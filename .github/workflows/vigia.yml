@@ -5,7 +5,9 @@
 name: Vigía del R630
 on:
   schedule:
-    - cron: "*/30 * * * *"      # cada 30 min (GitHub puede atrasarlo unos minutos)
+    # Minutos «raros»: GitHub se salta corridas a las :00 y :30 cuando está cargado
+    # (22-oct: con "*/30" corrió solo 3 veces en 16 horas).
+    - cron: "7,37 * * * *"
   workflow_dispatch:            # para probarlo a mano
     inputs:
       probar_alarma:
