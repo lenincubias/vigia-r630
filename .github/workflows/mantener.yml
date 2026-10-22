@@ -1,0 +1,20 @@
+# GitHub APAGA las tareas programadas de un repositorio público sin actividad en 60 días.
+# Una vez al mes se anota la fecha en latido.txt y eso cuenta como actividad.
+name: Mantener activo el vigía
+on:
+  schedule:
+    - cron: "17 15 1 * *"
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  latido:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          date -u '+%F %H:%M UTC' > latido.txt
+          git config user.name "vigia-r630"
+          git config user.email "vigia-r630@users.noreply.github.com"
+          git add latido.txt
+          git commit -m "Latido mensual (para que GitHub no apague el vigía)" && git push

@@ -14,14 +14,22 @@ on:
         description: "Fingir una caída para comprobar que llega el correo"
         type: boolean
         default: false
+# Una sola corrida a la vez: la siguiente espera a que termine la anterior.
+concurrency:
+  group: vigia
+  cancel-in-progress: false
 jobs:
   revisar:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # 22-oct: GitHub se saltaba las tareas programadas (corría cada 3-4 h). Ahora cada corrida REVISA CADA 5 MIN
+    # durante ~5 h 45 min (repositorio público: minutos sin costo) y la siguiente programada la releva.
+    timeout-minutes: 350
     steps:
-      - name: Revisar los servicios
+      - name: Revisar los servicios cada 5 minutos
         run: |
           set -u
+          FIN=$(( $(date +%s) + ${{ inputs.probar_alarma && 60 || 20700 }} ))
+          while :; do
           # nombre|dirección: un servicio por túnel y los que mueven dinero.
           SERVICIOS="
           CrediGestión|https://prestamista.connect-c2ts.com/api/health
@@ -50,7 +58,11 @@ jobs:
             if [ "$OK" = 1 ]; then echo "✅ $NOMBRE"; else echo "❌ $NOMBRE no responde ($C) — $URL"; echo "::error::$NOMBRE no responde ($C)"; CAIDOS=$((CAIDOS+1)); fi
           done <<< "$SERVICIOS"
           if [ "$CAIDOS" -gt 0 ]; then
-            echo "## ❌ $CAIDOS servicio(s) del R630 no responden" >> "$GITHUB_STEP_SUMMARY"
+            echo "## ❌ $(date -u '+%F %H:%M') UTC: $CAIDOS servicio(s) del R630 no responden" >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
-          echo "## ✅ Todo responde" >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ $(date -u '+%H:%M') UTC todo responde"
+          [ "$(date +%s)" -ge "$FIN" ] && break
+          sleep 300
+          done
+          echo "## ✅ Todo respondió durante esta corrida" >> "$GITHUB_STEP_SUMMARY"
