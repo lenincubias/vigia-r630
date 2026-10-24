@@ -33,7 +33,7 @@ jobs:
           # nombre|dirección: un servicio por túnel y los que mueven dinero.
           SERVICIOS="
           CrediGestión|https://prestamista.connect-c2ts.com/api/health
-          ChatBe (Pizza Richie)|https://pizzarichie-api.connect-c2ts.com/api/salud
+          Richie (Pizza Richie)|https://pizzarichie-api.connect-c2ts.com/api/salud
           Actas de Entrega|https://actas-api.connect-c2ts.com/api/salud
           Despachos|https://proyectosdespachos-api.connect-c2ts.com/api/salud
           Taller (AutoPartes)|https://taller.connect-c2ts.com/api/health
